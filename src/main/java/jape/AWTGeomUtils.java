@@ -6,6 +6,10 @@ import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.LinearRing;
+import com.vividsolutions.jts.geom.Polygon;
+
 public class AWTGeomUtils {
 
 	
@@ -21,5 +25,20 @@ public class AWTGeomUtils {
 			origPathIterator.next();
 		}
 		return toReturn;
+	}
+	
+	public static Path2D.Double polygonToPath2D(Polygon polygon) {
+		Path2D.Double path = new Path2D.Double();
+		LinearRing ring = (LinearRing) polygon.getExteriorRing();
+		Coordinate[] coords = ring.getCoordinates();
+		for (int i = 0; i < coords.length; i++) {
+			if (i == 0) {
+				path.moveTo(coords[i].x, coords[i].y);
+			} else {
+				path.lineTo(coords[i].x, coords[i].y);
+			}
+		}
+		path.closePath();
+		return path;
 	}
 }

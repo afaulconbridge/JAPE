@@ -30,25 +30,11 @@ public class Builder {
 
 	private final GeometryFactory geomFact = new GeometryFactory();
 
-	private Polygon convertPath2DToPolygon(Path2D.Double path) {
-		List<Coordinate> coordinates = new ArrayList<>();
-		PathIterator iter = path.getPathIterator(null);
-		while (!iter.isDone()) {
-			double[] coords = new double[6];
-			iter.currentSegment(coords);
-			double x = coords[0];
-			double y = coords[1];
-			coordinates.add(new Coordinate(x, y));
-			iter.next();
-		}
-		return geomFact.createPolygon(coordinates.toArray(new Coordinate[coordinates.size()]));
-	}
-
-	private QuadEdgeSubdivision convertPointsToQuadEdgeSubdivision(Set<Point2D.Double> points) {
+	private QuadEdgeSubdivision convertPointsToQuadEdgeSubdivision(Set<Coordinate> points) {
 		// convert input into jts objects
 		Coordinate[] pointCoordinates = new Coordinate[points.size()];
 		int i = 0;
-		for (Point2D.Double point : points) {
+		for (Coordinate point : points) {
 			pointCoordinates[i] = new Coordinate(point.x, point.y);
 			i++;
 		}
@@ -60,15 +46,13 @@ public class Builder {
 	}
 
 	// TODO accept non-rectangular bounds
-	public Set<Point2D.Double> createRandomPoints(int pointCount, long seed, Path2D.Double bounds) {
+	public Set<Coordinate> createRandomPoints(int pointCount, long seed, Polygon container) {
 		double xMin = 0.0;
 		double xMax = 0.0;
 		double yMin = 0.0;
 		double yMax = 0.0;
 		Random rng = new Random(seed);
-		Set<Point2D.Double> points = new HashSet<>();
-		// convert input into jts objects
-		Polygon container = convertPath2DToPolygon(bounds);
+		Set<Coordinate> points = new HashSet<>();
 		// calculate min/max from bounds
 		Coordinate[] contCoords = container.getCoordinates();
 		System.out.println("foo " + contCoords.length);
@@ -89,7 +73,7 @@ public class Builder {
 			double y = (rng.nextDouble() * (yMax - yMin)) + yMin;
 			if (container.contains(geomFact.createPoint(new Coordinate(x, y)))) {
 				System.out.println("Adding " + x + "," + y);
-				points.add(new Point2D.Double(x, y));
+				points.add(new Coordinate(x, y));
 				i++;
 			} else {
 				System.out.println("Failing " + x + "," + y);
@@ -98,11 +82,10 @@ public class Builder {
 		return points;
 	}
 
-	public Set<Point2D.Double> relax(Set<Point2D.Double> points, Path2D.Double bounds) {
-		Set<Point2D.Double> pointsOut = new HashSet<>();
+	public Set<Coordinate> relax(Set<Coordinate> points, Polygon container) {
+		Set<Coordinate> pointsOut = new HashSet<>();
 		// convert input into jts objects
 		QuadEdgeSubdivision qes = convertPointsToQuadEdgeSubdivision(points);
-		Polygon container = convertPath2DToPolygon(bounds);
 
 		// for each voronoi polygon, use the centroid as a new point
 		GeometryCollection voronoi = (GeometryCollection) qes.getVoronoiDiagram(geomFact);
@@ -111,24 +94,24 @@ public class Builder {
 			// only use the part of the polygon within bounds
 			p = (Polygon) p.intersection(container);
 			Coordinate coordinate = p.getCentroid().getCoordinate();
-			pointsOut.add(new Point2D.Double(coordinate.x, coordinate.y));
+			pointsOut.add(new Coordinate(coordinate.x, coordinate.y));
 		}
 		return pointsOut;
 	}
 
-	public IslandMap buildData(Set<Point2D.Double> points, Path2D.Double bounds) {
+	public IslandMap buildData(Set<Coordinate> points, Polygon container) {
 		// convert input into jts objects
 
 		QuadEdgeSubdivision qes = convertPointsToQuadEdgeSubdivision(points);
-		Polygon container = convertPath2DToPolygon(bounds);
 		return new IslandMap(qes, container);
 	}
 
 	public void run() {
 		// setup border
-		Path2D.Double bounds = new Path2D.Double(new Rectangle2D.Double(0.0, 0.0, 640.0, 480.0));
+		Polygon bounds = geomFact.createPolygon(new Coordinate[] { new Coordinate(0.0, 0.0), new Coordinate(0.0, 480.0),
+				new Coordinate(640.0, 480.0), new Coordinate(640.0, 0.0), new Coordinate(0.0, 0.0) });
 		// create some initial points
-		Set<Point2D.Double> points = createRandomPoints(400, 42, bounds);
+		Set<Coordinate> points = createRandomPoints(400, 42, bounds);
 		// relax them
 		points = relax(points, bounds);
 		points = relax(points, bounds);
@@ -140,10 +123,7 @@ public class Builder {
 		display(worldMap, bounds);
 	}
 
-	public void display(IslandMap worldMap, Path2D.Double bounds) {
-
-		// convert input into jts objects
-		Polygon container = convertPath2DToPolygon(bounds);
+	public void display(IslandMap worldMap, Polygon container) {
 		// calculate min/max from bounds
 		Coordinate[] contCoords = container.getCoordinates();
 		double xMin = Double.MAX_VALUE;
@@ -167,52 +147,48 @@ public class Builder {
 		final BufferedImage img = new BufferedImage(xSize, ySize, BufferedImage.TYPE_4BYTE_ABGR);
 		Graphics2D g = (Graphics2D) img.createGraphics();
 		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-		
-		g.setColor(Color.white);
-		g.fillRect(0,0, xSize,ySize);
 
-		//poly edges
-		for (Path2D.Double region : worldMap.getRegions()) {
-			//if poly water
+		g.setColor(Color.white);
+		g.fillRect(0, 0, xSize, ySize);
+
+		// poly edges
+		for (Polygon region : worldMap.getRegions()) {
+			// if poly water
 			if (worldMap.getIsSiteUnderwater(worldMap.getSiteOfRegion(region))) {
 				g.setColor(Color.blue);
-				g.fill(region);
+				g.fill(AWTGeomUtils.polygonToPath2D(region));
 			} else {
-				//poly ground
+				// poly ground
 				g.setColor(Color.green);
-				g.fill(region);
+				g.fill(AWTGeomUtils.polygonToPath2D(region));
 			}
 			g.setColor(Color.black);
 			g.setStroke(new BasicStroke(1));
-			g.draw(region);
+			g.draw(AWTGeomUtils.polygonToPath2D(region));
 		}
-		//tri edges
-		for (Point2D.Double orig: worldMap.getSites()) {
-			for (Point2D.Double dest : worldMap.getLinkedSites(orig)) {
+		// tri edges
+		for (Coordinate orig : worldMap.getSites()) {
+			for (Coordinate dest : worldMap.getLinkedSites(orig)) {
 				g.setColor(Color.white);
 				g.setStroke(new BasicStroke(1));
 				int x1 = (int) orig.x;
 				int y1 = (int) orig.y;
 				int x2 = (int) dest.x;
 				int y2 = (int) dest.y;
-				g.drawLine(x1,y1, x2,y2);
+				g.drawLine(x1, y1, x2, y2);
 			}
 		}
 
-		//points
+		// points
 		/*
-		g.setColor(Color.black);
-		g.setStroke(new BasicStroke(1));
-		for (Point2D.Double site: worldMap.getSites()) {
-			int x = (int) site.x;
-			int y = (int) site.y;
-			g.fillOval(x - 1, y - 1, 3, 3);
-		}
-		*/
-		//outline
+		 * g.setColor(Color.black); g.setStroke(new BasicStroke(1)); for
+		 * (Coordinate site: worldMap.getSites()) { int x = (int) site.x; int y
+		 * = (int) site.y; g.fillOval(x - 1, y - 1, 3, 3); }
+		 */
+		// outline
 		g.setPaint(Color.black);
 		g.setStroke(new BasicStroke(3));
-		g.draw(bounds);
+		g.draw(AWTGeomUtils.polygonToPath2D(container));
 
 		final JFrame frame = new JFrame() {
 			@Override
