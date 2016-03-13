@@ -55,7 +55,6 @@ public class Builder {
 		Set<Coordinate> points = new HashSet<>();
 		// calculate min/max from bounds
 		Coordinate[] contCoords = container.getCoordinates();
-		System.out.println("foo " + contCoords.length);
 		for (int i = 0; i < contCoords.length; i++) {
 			if (i == 0 || contCoords[i].x < xMin)
 				xMin = contCoords[i].x;
@@ -66,17 +65,18 @@ public class Builder {
 			if (i == 0 || contCoords[i].y > yMax)
 				yMax = contCoords[i].y;
 		}
-		// don't incremenet i automatically
+		// don't increment i automatically
 		// only done if point inside bounds
+		//TODO in theory with a weird shape this could take too long
 		for (int i = 0; i < pointCount;) {
 			double x = (rng.nextDouble() * (xMax - xMin)) + xMin;
 			double y = (rng.nextDouble() * (yMax - yMin)) + yMin;
 			if (container.contains(geomFact.createPoint(new Coordinate(x, y)))) {
-				System.out.println("Adding " + x + "," + y);
+				//System.out.println("Adding " + x + "," + y);
 				points.add(new Coordinate(x, y));
 				i++;
 			} else {
-				System.out.println("Failing " + x + "," + y);
+				//System.out.println("Failing " + x + "," + y);
 			}
 		}
 		return points;
@@ -169,13 +169,18 @@ public class Builder {
 		// tri edges
 		for (Coordinate orig : worldMap.getSites()) {
 			for (Coordinate dest : worldMap.getLinkedSites(orig)) {
+				Coordinate mid = worldMap.getSiteToSiteMidpoint(orig, dest);
+				
 				g.setColor(Color.white);
 				g.setStroke(new BasicStroke(1));
 				int x1 = (int) orig.x;
 				int y1 = (int) orig.y;
+				int xm = (int) mid.x;
+				int ym = (int) mid.y;
 				int x2 = (int) dest.x;
 				int y2 = (int) dest.y;
-				g.drawLine(x1, y1, x2, y2);
+				g.drawLine(x1, y1, xm, ym);
+				g.drawLine(xm, ym, x2, y2);
 			}
 		}
 
