@@ -5,14 +5,8 @@ import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
-import java.awt.geom.Path2D;
-import java.awt.geom.PathIterator;
-import java.awt.geom.Point2D;
-import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
@@ -103,7 +97,7 @@ public class Builder {
 		// convert input into jts objects
 
 		QuadEdgeSubdivision qes = convertPointsToQuadEdgeSubdivision(points);
-		return new IslandMap(qes, container);
+		return IslandMap.build(qes, container);
 	}
 
 	public void run() {
