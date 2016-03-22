@@ -1,4 +1,4 @@
-package jape;
+package jape.map;
 
 import java.util.HashMap;
 import java.util.Map;

@@ -1,4 +1,4 @@
-package jape;
+package jape.map;
 /*
  * OpenSimplex Noise in Java.
  * by Kurt Spencer

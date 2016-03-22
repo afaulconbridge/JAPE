@@ -1,4 +1,4 @@
-package jape;
+package jape.map;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
