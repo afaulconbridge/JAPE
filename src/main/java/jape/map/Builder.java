@@ -4,13 +4,18 @@ import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.GraphicsConfiguration;
+import java.awt.GraphicsEnvironment;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
 
+import javax.swing.ImageIcon;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JScrollPane;
 import javax.swing.WindowConstants;
 
 import com.vividsolutions.jts.geom.Coordinate;
@@ -138,7 +143,10 @@ public class Builder {
 		int xSize = (int) (xMax - xMin);
 		int ySize = (int) (yMax - yMin);
 
-		final BufferedImage img = new BufferedImage(xSize, ySize, BufferedImage.TYPE_4BYTE_ABGR);
+		GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+		GraphicsConfiguration gc = ge.getDefaultScreenDevice().getDefaultConfiguration();
+		BufferedImage img = gc.createCompatibleImage(xSize, ySize);
+		
 		Graphics2D g = (Graphics2D) img.createGraphics();
 		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
@@ -189,17 +197,11 @@ public class Builder {
 		g.setStroke(new BasicStroke(3));
 		g.draw(AWTGeomUtils.polygonToPath2D(container));
 
-		final JFrame frame = new JFrame() {
-			@Override
-			public void paint(Graphics g) {
-				g.drawImage(img, 25, 35, null);
-			}
-		};
-
-		frame.setTitle("java fortune");
+		JFrame frame = new JFrame();		
+		frame.getContentPane().add(new JScrollPane(new JLabel(new ImageIcon(img))));
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frame.pack();
 		frame.setVisible(true);
-		frame.setSize(img.getWidth() + 50, img.getHeight() + 70);
-		frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 	}
 
 	public static void main(String[] args) {
