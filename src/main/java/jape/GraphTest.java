@@ -25,6 +25,8 @@ import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.DefaultWeightedEdge;
 import org.jgrapht.graph.ListenableUndirectedGraph;
 import org.jgrapht.graph.SimpleDirectedWeightedGraph;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.GeometryFactory;
@@ -35,6 +37,7 @@ import jape.map.Builder;
 import jape.map.IslandMap;
 
 public class GraphTest {
+	private final Logger log = LoggerFactory.getLogger(this.getClass());
 	
 	private IslandMap worldMap;
 	private SimpleDirectedWeightedGraph<Coordinate, DefaultWeightedEdge> graph;
@@ -121,7 +124,14 @@ public class GraphTest {
 				for (Coordinate linkedSite : worldMap.getLinkedSites(site)) {
 					if (!worldMap.getIsSiteUnderwater(linkedSite)) {
 						graph.addEdge(site, linkedSite);
-						graph.setEdgeWeight(graph.getEdge(site, linkedSite), site.distance(linkedSite));
+						double weight = site.distance(linkedSite);
+						//scale weight by 1+altitude change^2
+						double heightSite = worldMap.getHeightOfSite(site);
+						double heightLinkedSite = worldMap.getHeightOfSite(linkedSite);
+						double weightScale= Math.pow((heightSite-heightLinkedSite), 2.0);
+						log.info("weight scale = "+weightScale);
+						weight *= 1.0+weightScale;
+						graph.setEdgeWeight(graph.getEdge(site, linkedSite), weight);
 					}
 				}
 			}
@@ -206,7 +216,7 @@ public class GraphTest {
 			int y2 = (int) target.y;
 			g.setColor(Color.black);
 			g.setStroke(new BasicStroke(1));
-			g.drawLine(x1, y1, x2, y2);
+			//g.drawLine(x1, y1, x2, y2);
 		}
 		
 		//work out which site the mouse is closest to, and highlight it
