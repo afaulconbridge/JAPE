@@ -58,7 +58,11 @@ public class IslandMap extends BasicMap {
 			//polygon is below water
 			double underwaterFraction = (double) underwaterCount / (double) region.getCoordinates().length;
 			Coordinate site = getSiteOfRegion(region);
-			pointHeight.put(site, averageHeight);
+			if (averageHeight < 0.0) {
+				pointHeight.put(site, averageHeight);
+			} else {
+				pointHeight.put(site, Math.sqrt(averageHeight));
+			}
 		}
 	}
 	
