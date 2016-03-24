@@ -66,16 +66,16 @@ public class Builder {
 		}
 		// don't increment i automatically
 		// only done if point inside bounds
-		//TODO in theory with a weird shape this could take too long
+		// TODO in theory with a weird shape this could take too long
 		for (int i = 0; i < pointCount;) {
 			double x = (rng.nextDouble() * (xMax - xMin)) + xMin;
 			double y = (rng.nextDouble() * (yMax - yMin)) + yMin;
 			if (container.contains(geomFact.createPoint(new Coordinate(x, y)))) {
-				//System.out.println("Adding " + x + "," + y);
+				// System.out.println("Adding " + x + "," + y);
 				points.add(new Coordinate(x, y));
 				i++;
 			} else {
-				//System.out.println("Failing " + x + "," + y);
+				// System.out.println("Failing " + x + "," + y);
 			}
 		}
 		return points;
@@ -146,7 +146,7 @@ public class Builder {
 		GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
 		GraphicsConfiguration gc = ge.getDefaultScreenDevice().getDefaultConfiguration();
 		BufferedImage img = gc.createCompatibleImage(xSize, ySize);
-		
+
 		Graphics2D g = (Graphics2D) img.createGraphics();
 		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
@@ -155,15 +155,9 @@ public class Builder {
 
 		// poly edges
 		for (Polygon region : worldMap.getRegions()) {
-			// if poly water
-			if (worldMap.getIsSiteUnderwater(worldMap.getSiteOfRegion(region))) {
-				g.setColor(Color.blue);
-				g.fill(AWTGeomUtils.polygonToPath2D(region));
-			} else {
-				// poly ground
-				g.setColor(Color.green);
-				g.fill(AWTGeomUtils.polygonToPath2D(region));
-			}
+			g.setColor(getHeightColor(worldMap.getHeightOfSite(worldMap.getSiteOfRegion(region))));
+			g.fill(AWTGeomUtils.polygonToPath2D(region));
+
 			g.setColor(Color.black);
 			g.setStroke(new BasicStroke(1));
 			g.draw(AWTGeomUtils.polygonToPath2D(region));
@@ -172,7 +166,7 @@ public class Builder {
 		for (Coordinate orig : worldMap.getSites()) {
 			for (Coordinate dest : worldMap.getLinkedSites(orig)) {
 				Coordinate mid = worldMap.getSiteToSiteMidpoint(orig, dest);
-				
+
 				g.setColor(Color.white);
 				g.setStroke(new BasicStroke(1));
 				int x1 = (int) orig.x;
@@ -197,11 +191,28 @@ public class Builder {
 		g.setStroke(new BasicStroke(3));
 		g.draw(AWTGeomUtils.polygonToPath2D(container));
 
-		JFrame frame = new JFrame();		
+		JFrame frame = new JFrame();
 		frame.getContentPane().add(new JScrollPane(new JLabel(new ImageIcon(img))));
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.pack();
 		frame.setVisible(true);
+	}
+
+	private Color getHeightColor(double height) {
+		if (height < 0.0) {
+			// underwater
+			float r = 0.0f;
+			float g = 0.0f;
+			float b = (float) (1.0 +height);
+			return new Color(r, g, b);
+		} else {
+			// above ground
+			// interpolate from 0,255,0 to 245,222,173
+			int r = (int) ((245 * height) + (0 * (1.0 - height)));
+			int g = (int) ((222 * height) + (255 * (1.0 - height)));
+			int b = (int) ((173 * height) + (0 * (1.0 - height)));
+			return new Color(r, g, b);
+		}
 	}
 
 	public static void main(String[] args) {

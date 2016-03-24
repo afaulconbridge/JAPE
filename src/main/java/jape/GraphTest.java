@@ -22,6 +22,7 @@ import javax.swing.event.MouseInputAdapter;
 
 import org.jgrapht.UndirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
+import org.jgrapht.graph.DefaultWeightedEdge;
 import org.jgrapht.graph.ListenableUndirectedGraph;
 import org.jgrapht.graph.SimpleDirectedWeightedGraph;
 
@@ -36,8 +37,8 @@ import jape.map.IslandMap;
 public class GraphTest {
 	
 	private IslandMap worldMap;
-	private SimpleDirectedWeightedGraph<Coordinate, DefaultEdge> graph;
-	private AStarBuilder<Coordinate, DefaultEdge> aStarBuilder;
+	private SimpleDirectedWeightedGraph<Coordinate, DefaultWeightedEdge> graph;
+	private AStarBuilder<Coordinate, DefaultWeightedEdge> aStarBuilder;
 	
 	private Integer mouseX = null;
 	private Integer mouseY = null;
@@ -105,7 +106,7 @@ public class GraphTest {
 		worldMap = builder.buildData(points, bounds);
 		
 		// create a JGraphT graph
-		graph = new SimpleDirectedWeightedGraph<>(DefaultEdge.class);
+		graph = new SimpleDirectedWeightedGraph<>(DefaultWeightedEdge.class);
 		
 		//build the graph from the map
 		for (Polygon poly : worldMap.getRegions()) {
@@ -120,6 +121,7 @@ public class GraphTest {
 				for (Coordinate linkedSite : worldMap.getLinkedSites(site)) {
 					if (!worldMap.getIsSiteUnderwater(linkedSite)) {
 						graph.addEdge(site, linkedSite);
+						graph.setEdgeWeight(graph.getEdge(site, linkedSite), site.distance(linkedSite));
 					}
 				}
 			}
@@ -156,10 +158,11 @@ public class GraphTest {
 	}
 	
 	private Coordinate getCoordinateClosest(int x, int y) {
+		Coordinate target = new Coordinate(x,y);
 		Coordinate closest = null;
 		double dist = 0.0;
 		for (Coordinate coord : graph.vertexSet()) {
-			double coordDist = Math.sqrt(Math.pow(x-coord.x, 2)+Math.pow(y-coord.y, 2));
+			double coordDist = target.distance(coord);
 			if (closest == null || coordDist < dist) {
 				closest = coord;
 				dist = coordDist;
@@ -167,27 +170,34 @@ public class GraphTest {
 		}
 		return closest;
 	}
+	private Color getHeightColor(double height) {
+		if (height < 0.0) {
+			// underwater
+			float r = 0.0f;
+			float g = 0.0f;
+			float b = (float) (1.0 +height);
+			return new Color(r, g, b);
+		} else {
+			// above ground
+			// interpolate from 0,255,0 to 245,222,173
+			int r = (int) ((245 * height) + (0 * (1.0 - height)));
+			int g = (int) ((222 * height) + (255 * (1.0 - height)));
+			int b = (int) ((173 * height) + (0 * (1.0 - height)));
+			return new Color(r, g, b);
+		}
+	}
 	
 	private void redraw(Graphics2D g) {
 
 		// poly edges
 		for (Polygon region : worldMap.getRegions()) {
-			// if poly water
-			if (worldMap.getIsSiteUnderwater(worldMap.getSiteOfRegion(region))) {
-				g.setColor(Color.blue);
-				g.fill(AWTGeomUtils.polygonToPath2D(region));
-			} else {
-				// poly ground
-				g.setColor(Color.green);
-				g.fill(AWTGeomUtils.polygonToPath2D(region));
-			}
-			//g.setColor(Color.black);
-			//g.setStroke(new BasicStroke(1));
-			//g.draw(AWTGeomUtils.polygonToPath2D(region));
+			g.setColor(getHeightColor(worldMap.getHeightOfSite(worldMap.getSiteOfRegion(region))));
+			g.fill(AWTGeomUtils.polygonToPath2D(region));
 		}
+
 		
 		//graph edges
-		for (DefaultEdge edge : graph.edgeSet()) {
+		for (DefaultWeightedEdge edge : graph.edgeSet()) {
 			Coordinate source = graph.getEdgeSource(edge);
 			Coordinate target = graph.getEdgeTarget(edge);
 			int x1 = (int) source.x;

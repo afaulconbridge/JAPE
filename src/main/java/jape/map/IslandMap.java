@@ -11,7 +11,7 @@ import com.vividsolutions.jts.triangulate.quadedge.QuadEdgeSubdivision;
 
 public class IslandMap extends BasicMap {
 
-	private Map<Coordinate, Boolean> pointWater = new HashMap<>();
+	private Map<Coordinate, Double> pointHeight = new HashMap<>();
 	
 	private final double heightPropScalingPower = 2.0;
 	private final double waterLevel = 0.0; //range -1.0 to 1.0
@@ -21,7 +21,7 @@ public class IslandMap extends BasicMap {
 	}
 
 	public boolean getIsSiteUnderwater(Coordinate site) {
-		return pointWater.get(site);
+		return (pointHeight.get(site) < 0);
 	}
 	
 	protected void setup(QuadEdgeSubdivision qes) {
@@ -33,6 +33,7 @@ public class IslandMap extends BasicMap {
 		for (Polygon region : getRegions()) {
 			//see which corners are below water
 			int underwaterCount = 0;
+			double averageHeight = 0.0;
 			for (Coordinate coord : region.getCoordinates()) {
 				Double height = osn.eval(coord.x, coord.y);
 				Point point = geomFact.createPoint(coord);
@@ -45,23 +46,19 @@ public class IslandMap extends BasicMap {
 				//drop the height range by the square of the proportion of the distance to centre
 				//i.e. make middle high and edges low
 				height = height-Math.pow(distanceProp, heightPropScalingPower);
+				pointHeight.put(coord, height);
 				
 				if (waterLevel > height) {
-					pointWater.put(coord, Boolean.TRUE);
 					underwaterCount ++;
-				} else {
-					pointWater.put(coord, Boolean.FALSE);
-				}
+				} 
+				averageHeight += height;
 			}
+			averageHeight /= region.getCoordinates().length;
 			//if more than half corners below water, 
 			//polygon is below water
 			double underwaterFraction = (double) underwaterCount / (double) region.getCoordinates().length;
 			Coordinate site = getSiteOfRegion(region);
-			if (underwaterFraction > 0.5) {
-				pointWater.put(site, Boolean.TRUE);
-			} else {
-				pointWater.put(site, Boolean.FALSE);				
-			}
+			pointHeight.put(site, averageHeight);
 		}
 	}
 	
@@ -69,5 +66,9 @@ public class IslandMap extends BasicMap {
 		IslandMap map  = new IslandMap(boundary);
 		map.setup(qes);
 		return map;
+	}
+
+	public double getHeightOfSite(Coordinate site) {
+		return pointHeight.get(site);
 	}
 }
