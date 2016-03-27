@@ -2,7 +2,6 @@ package jape.map;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
-import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GraphicsConfiguration;
 import java.awt.GraphicsEnvironment;
@@ -16,8 +15,6 @@ import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JScrollPane;
-import javax.swing.WindowConstants;
-
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.GeometryCollection;
 import com.vividsolutions.jts.geom.GeometryFactory;
@@ -203,7 +200,7 @@ public class Builder {
 			// underwater
 			float r = 0.0f;
 			float g = 0.0f;
-			float b = (float) (1.0 +height);
+			float b = (float) (1.0 + height);
 			return new Color(r, g, b);
 		} else {
 			// above ground

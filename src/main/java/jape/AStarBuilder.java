@@ -10,9 +10,6 @@ import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
 
-import org.jgrapht.Graph;
-import org.jgrapht.graph.DefaultEdge;
-import org.jgrapht.graph.DefaultWeightedEdge;
 import org.jgrapht.graph.SimpleDirectedWeightedGraph;
 
 public class AStarBuilder<V, E> {
@@ -73,7 +70,7 @@ public class AStarBuilder<V, E> {
 
 					if (!closed.contains(neighbour) && !open.contains(neighbour)) {
 						costSoFar.put(neighbour, cost);
-						costEstimate.put(neighbour, cost+heuristic.getCostEstimate(neighbour, goal));
+						costEstimate.put(neighbour, cost + heuristic.getCostEstimate(neighbour, goal));
 						open.add(neighbour);
 						cameFrom.put(neighbour, current);
 					}
@@ -86,7 +83,7 @@ public class AStarBuilder<V, E> {
 				return null;
 			}
 		}
-		
+
 		List<V> path = new ArrayList<>();
 		V current = goal;
 		while (!start.equals(current)) {

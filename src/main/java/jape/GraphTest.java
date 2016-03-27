@@ -20,10 +20,7 @@ import javax.swing.JScrollPane;
 import javax.swing.Timer;
 import javax.swing.event.MouseInputAdapter;
 
-import org.jgrapht.UndirectedGraph;
-import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.DefaultWeightedEdge;
-import org.jgrapht.graph.ListenableUndirectedGraph;
 import org.jgrapht.graph.SimpleDirectedWeightedGraph;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,63 +35,67 @@ import jape.map.IslandMap;
 
 public class GraphTest {
 	private final Logger log = LoggerFactory.getLogger(this.getClass());
-	
+
 	private IslandMap worldMap;
 	private SimpleDirectedWeightedGraph<Coordinate, DefaultWeightedEdge> graph;
 	private AStarBuilder<Coordinate, DefaultWeightedEdge> aStarBuilder;
-	
+
 	private Integer mouseX = null;
 	private Integer mouseY = null;
 	private Coordinate start = null;
-	
+
 	private class MyMouseInputAdapter extends MouseInputAdapter {
 		@Override
 		public void mouseExited(MouseEvent e) {
 			mouseX = null;
 			mouseY = null;
 		}
+
 		@Override
 		public void mouseEntered(MouseEvent e) {
 			mouseX = e.getX();
 			mouseY = e.getY();
 		}
+
 		@Override
 		public void mouseMoved(MouseEvent e) {
 			mouseX = e.getX();
 			mouseY = e.getY();
 		}
+
 		@Override
 		public void mouseDragged(MouseEvent e) {
 			mouseX = e.getX();
 			mouseY = e.getY();
 		}
+
 		@Override
 		public void mousePressed(MouseEvent e) {
 			mouseX = e.getX();
 			mouseY = e.getY();
 			if (e.getButton() == MouseEvent.BUTTON1) {
-				//left click selects
+				// left click selects
 				start = getCoordinateClosest(mouseX, mouseY);
 			} else if (e.getButton() == MouseEvent.BUTTON3) {
-				 //right click clears
+				// right click clears
 				start = null;
 			}
 		}
 	}
-	
+
 	private class EuclidianHeuristic implements Heuristic<Coordinate> {
 		@Override
 		public double getCostEstimate(Coordinate source, Coordinate target) {
-			return Math.sqrt(Math.pow(source.x-target.x, 2)+Math.pow(source.y-target.y, 2));
+			return Math.sqrt(Math.pow(source.x - target.x, 2) + Math.pow(source.y - target.y, 2));
 		}
 	}
-	
+
 	public static void main(String[] args) {
 		new GraphTest().run();
 	}
-		
+
 	public void run() {
-		
+
 		Builder builder = new Builder();
 		GeometryFactory geomFact = new GeometryFactory();
 		Polygon bounds = geomFact.createPolygon(new Coordinate[] { new Coordinate(0.0, 0.0), new Coordinate(0.0, 800.0),
@@ -105,13 +106,13 @@ public class GraphTest {
 		points = builder.relax(points, bounds);
 		points = builder.relax(points, bounds);
 		points = builder.relax(points, bounds);
-		//build a map
+		// build a map
 		worldMap = builder.buildData(points, bounds);
-		
+
 		// create a JGraphT graph
 		graph = new SimpleDirectedWeightedGraph<>(DefaultWeightedEdge.class);
-		
-		//build the graph from the map
+
+		// build the graph from the map
 		for (Polygon poly : worldMap.getRegions()) {
 			Coordinate site = worldMap.getSiteOfRegion(poly);
 			if (!worldMap.getIsSiteUnderwater(site)) {
@@ -125,19 +126,19 @@ public class GraphTest {
 					if (!worldMap.getIsSiteUnderwater(linkedSite)) {
 						graph.addEdge(site, linkedSite);
 						double weight = site.distance(linkedSite);
-						//scale weight by 1+altitude change^2
+						// scale weight by 1+altitude change^2
 						double heightSite = worldMap.getHeightOfSite(site);
 						double heightLinkedSite = worldMap.getHeightOfSite(linkedSite);
-						double weightScale= Math.pow((heightSite-heightLinkedSite), 2.0);
-						log.info("weight scale = "+weightScale);
-						weight *= 1.0+weightScale;
+						double weightScale = Math.abs(heightSite - heightLinkedSite);
+						// log.info("weight scale = "+weightScale);
+						weight *= 1.0 + weightScale;
 						graph.setEdgeWeight(graph.getEdge(site, linkedSite), weight);
 					}
 				}
 			}
 		}
-		//TODO use midpoints of shared edges
-		
+		// TODO use midpoints of shared edges
+
 		aStarBuilder = new AStarBuilder<>(graph, new EuclidianHeuristic());
 
 		// Show in Frame
@@ -150,25 +151,26 @@ public class GraphTest {
 		frame.getContentPane().add(new JScrollPane(imgLabel));
 		frame.pack();
 		frame.setVisible(true);
-		
+
 		MyMouseInputAdapter myMouseInputAdapter = new MyMouseInputAdapter();
 		imgLabel.addMouseListener(myMouseInputAdapter);
 		imgLabel.addMouseMotionListener(myMouseInputAdapter);
 		imgLabel.addMouseWheelListener(myMouseInputAdapter);
-		
-		new Timer(1000/30, new ActionListener(){
+
+		new Timer(1000 / 30, new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				Graphics2D g = (Graphics2D) img.getGraphics();
 				g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 				redraw(g);
-				g.dispose();			
+				g.dispose();
 				imgLabel.repaint();
-			}}).start();
+			}
+		}).start();
 	}
-	
+
 	private Coordinate getCoordinateClosest(int x, int y) {
-		Coordinate target = new Coordinate(x,y);
+		Coordinate target = new Coordinate(x, y);
 		Coordinate closest = null;
 		double dist = 0.0;
 		for (Coordinate coord : graph.vertexSet()) {
@@ -180,12 +182,13 @@ public class GraphTest {
 		}
 		return closest;
 	}
+
 	private Color getHeightColor(double height) {
 		if (height < 0.0) {
 			// underwater
 			float r = 0.0f;
 			float g = 0.0f;
-			float b = (float) (1.0 +height);
+			float b = (float) (1.0 + height);
 			return new Color(r, g, b);
 		} else {
 			// above ground
@@ -196,7 +199,7 @@ public class GraphTest {
 			return new Color(r, g, b);
 		}
 	}
-	
+
 	private void redraw(Graphics2D g) {
 
 		// poly edges
@@ -205,8 +208,7 @@ public class GraphTest {
 			g.fill(AWTGeomUtils.polygonToPath2D(region));
 		}
 
-		
-		//graph edges
+		// graph edges
 		for (DefaultWeightedEdge edge : graph.edgeSet()) {
 			Coordinate source = graph.getEdgeSource(edge);
 			Coordinate target = graph.getEdgeTarget(edge);
@@ -216,21 +218,21 @@ public class GraphTest {
 			int y2 = (int) target.y;
 			g.setColor(Color.black);
 			g.setStroke(new BasicStroke(1));
-			//g.drawLine(x1, y1, x2, y2);
+			// g.drawLine(x1, y1, x2, y2);
 		}
-		
-		//work out which site the mouse is closest to, and highlight it
+
+		// work out which site the mouse is closest to, and highlight it
 		if (mouseX != null && mouseY != null) {
 			Coordinate closest = getCoordinateClosest(mouseX, mouseY);
 			if (start != null) {
-				//calculate shortest path
+				// calculate shortest path
 				List<Coordinate> path = aStarBuilder.findpath(start, closest);
 				if (path != null) {
-					//draw it
+					// draw it
 					for (int i = 1; i < path.size(); i++) {
-	
-						int x1 = (int) path.get(i-1).x;
-						int y1 = (int) path.get(i-1).y;
+
+						int x1 = (int) path.get(i - 1).x;
+						int y1 = (int) path.get(i - 1).y;
 						int x2 = (int) path.get(i).x;
 						int y2 = (int) path.get(i).y;
 						g.setColor(Color.red);
@@ -239,17 +241,17 @@ public class GraphTest {
 					}
 				}
 			}
-			
+
 			g.setColor(Color.pink);
-			g.fillOval((int)closest.x-4, (int)closest.y-4, 9, 9);
+			g.fillOval((int) closest.x - 4, (int) closest.y - 4, 9, 9);
 		}
 
-		//highlight the start coord, if present
-		//highlight this after closest so it shows when selected initially
+		// highlight the start coord, if present
+		// highlight this after closest so it shows when selected initially
 		if (start != null) {
 			g.setColor(Color.red);
-			g.fillOval((int)start.x-4, (int)start.y-4, 9, 9);
+			g.fillOval((int) start.x - 4, (int) start.y - 4, 9, 9);
 		}
-		
+
 	}
 }

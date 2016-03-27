@@ -11,7 +11,6 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.GeometryCollection;
@@ -24,7 +23,7 @@ import com.vividsolutions.jts.triangulate.quadedge.QuadEdgeSubdivision;
 public class BasicMap {
 
 	private final Logger log = LoggerFactory.getLogger(this.getClass());
-	
+
 	/**
 	 * Contained space is completely divided into regions. Each region is a
 	 * convex polygon. Each region contains one site.
@@ -43,20 +42,21 @@ public class BasicMap {
 	 */
 	protected final Map<Polygon, Coordinate> regionToSite = new HashMap<>();
 	/**
-	 * Mapping between one site and the neighbouring sites. Regions of neighbouring sites
-	 * will share one edge between two vertexes.
+	 * Mapping between one site and the neighbouring sites. Regions of
+	 * neighbouring sites will share one edge between two vertexes.
 	 */
 	protected final Map<Coordinate, Set<Coordinate>> siteToSites = new HashMap<>();
-	
+
 	/**
-	 * Mapping of two sites and the mid point of the edge you have to go to travel between them 
+	 * Mapping of two sites and the mid point of the edge you have to go to
+	 * travel between them
 	 */
 	protected final Map<ImmutableSet<Coordinate>, Coordinate> siteToSiteMidpoints = new HashMap<>();
 
 	protected final Polygon boundary;
-	
+
 	protected final GeometryFactory geomFact;
-	
+
 	public BasicMap(Polygon boundary) {
 		this.boundary = boundary;
 		this.geomFact = boundary.getFactory();
@@ -91,16 +91,15 @@ public class BasicMap {
 			return Collections.unmodifiableSet(Collections.emptySet());
 		return Collections.unmodifiableSet(siteToSites.get(orig));
 	}
-	
+
 	public Coordinate getSiteToSiteMidpoint(Coordinate orig, Coordinate dest) {
 		return siteToSiteMidpoints.get(ImmutableSet.of(orig, dest));
 	}
-	
-		
+
 	protected void setup(QuadEdgeSubdivision qes) {
-		
-		//use the voronoi diagram to construct the sites and regions 
-		//breaks the voronoi rules near the boundary
+
+		// use the voronoi diagram to construct the sites and regions
+		// breaks the voronoi rules near the boundary
 		GeometryCollection voronoi = (GeometryCollection) qes.getVoronoiDiagram(geomFact);
 		for (int i = 0; i < voronoi.getNumGeometries(); i++) {
 			Polygon p = (Polygon) voronoi.getGeometryN(i);
@@ -119,12 +118,13 @@ public class BasicMap {
 		for (QuadEdge quadEdge : quadEdges) {
 			Coordinate orig = new Coordinate(quadEdge.orig().getX(), quadEdge.orig().getY());
 			Coordinate dest = new Coordinate(quadEdge.dest().getX(), quadEdge.dest().getY());
-			
+
 			Polygon origPath = getRegionOfSite(orig);
 			Polygon destPath = getRegionOfSite(dest);
 
 			// check the polys meet
-			// since we are trimming polys to bounds, sometimes polys may only have
+			// since we are trimming polys to bounds, sometimes polys may only
+			// have
 			// joined edges out of bounds
 			Set<Coordinate> origCorners = new HashSet<>();
 			origCorners.addAll(Arrays.asList(origPath.getCoordinates()));
@@ -137,30 +137,30 @@ public class BasicMap {
 				}
 				siteToSites.get(orig).add(dest);
 
-				//handle the inverse too
+				// handle the inverse too
 				if (!siteToSites.containsKey(dest)) {
 					siteToSites.put(dest, new HashSet<>());
 				}
 				siteToSites.get(dest).add(orig);
 			}
-			
-			//store the midpoint of the edge
-			//first check the edge comes to within the bounds
+
+			// store the midpoint of the edge
+			// first check the edge comes to within the bounds
 			Coordinate[] edgeCoords = new Coordinate[2];
 			edgeCoords[0] = quadEdge.rot().orig().getCoordinate();
 			edgeCoords[1] = quadEdge.rot().dest().getCoordinate();
 			LineString polyEdge = geomFact.createLineString(edgeCoords);
 			if (boundary.intersects(polyEdge)) {
 				polyEdge = (LineString) boundary.intersection(polyEdge);
-	
-				double midPointX = (polyEdge.getCoordinateN(0).x+polyEdge.getCoordinateN(1).x)/2.0;
-				double midPointY = (polyEdge.getCoordinateN(0).y+polyEdge.getCoordinateN(1).y)/2.0;
+
+				double midPointX = (polyEdge.getCoordinateN(0).x + polyEdge.getCoordinateN(1).x) / 2.0;
+				double midPointY = (polyEdge.getCoordinateN(0).y + polyEdge.getCoordinateN(1).y) / 2.0;
 				Coordinate midPoint = new Coordinate(midPointX, midPointY);
 				siteToSiteMidpoints.put(ImmutableSet.of(orig, dest), midPoint);
 			}
 		}
 	}
-	
+
 	public static BasicMap build(QuadEdgeSubdivision qes, Polygon boundary) {
 		BasicMap map = new BasicMap(boundary);
 		map.setup(qes);

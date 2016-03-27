@@ -12,10 +12,10 @@ import com.vividsolutions.jts.triangulate.quadedge.QuadEdgeSubdivision;
 public class IslandMap extends BasicMap {
 
 	private Map<Coordinate, Double> pointHeight = new HashMap<>();
-	
+
 	private final double heightPropScalingPower = 2.0;
-	private final double waterLevel = 0.0; //range -1.0 to 1.0
-	
+	private final double waterLevel = 0.0; // range -1.0 to 1.0
+
 	public IslandMap(Polygon container) {
 		super(container);
 	}
@@ -23,15 +23,15 @@ public class IslandMap extends BasicMap {
 	public boolean getIsSiteUnderwater(Coordinate site) {
 		return (pointHeight.get(site) < 0);
 	}
-	
+
 	protected void setup(QuadEdgeSubdivision qes) {
 		super.setup(qes);
-		
+
 		OpenSimplexNoise osn = new OpenSimplexNoise();
 
 		LinearRing perimeter = (LinearRing) boundary.getExteriorRing();
 		for (Polygon region : getRegions()) {
-			//see which corners are below water
+			// see which corners are below water
 			int underwaterCount = 0;
 			double averageHeight = 0.0;
 			for (Coordinate coord : region.getCoordinates()) {
@@ -39,23 +39,24 @@ public class IslandMap extends BasicMap {
 				Point point = geomFact.createPoint(coord);
 				double distanceFromPerimeter = perimeter.distance(point);
 				double distanceFromCenter = perimeter.getCentroid().distance(point);
-				double distanceTotal = distanceFromPerimeter+distanceFromCenter;
-				double distanceProp = distanceFromCenter/distanceTotal;
+				double distanceTotal = distanceFromPerimeter + distanceFromCenter;
+				double distanceProp = distanceFromCenter / distanceTotal;
 
-				height = (height/2.0)+0.5;
-				//drop the height range by the square of the proportion of the distance to centre
-				//i.e. make middle high and edges low
-				height = height-Math.pow(distanceProp, heightPropScalingPower);
+				height = (height / 2.0) + 0.5;
+				// drop the height range by the square of the proportion of the
+				// distance to centre
+				// i.e. make middle high and edges low
+				height = height - Math.pow(distanceProp, heightPropScalingPower);
 				pointHeight.put(coord, height);
-				
+
 				if (waterLevel > height) {
-					underwaterCount ++;
-				} 
+					underwaterCount++;
+				}
 				averageHeight += height;
 			}
 			averageHeight /= region.getCoordinates().length;
-			//if more than half corners below water, 
-			//polygon is below water
+			// if more than half corners below water,
+			// polygon is below water
 			double underwaterFraction = (double) underwaterCount / (double) region.getCoordinates().length;
 			Coordinate site = getSiteOfRegion(region);
 			if (averageHeight < 0.0) {
@@ -65,9 +66,9 @@ public class IslandMap extends BasicMap {
 			}
 		}
 	}
-	
+
 	public static IslandMap build(QuadEdgeSubdivision qes, Polygon boundary) {
-		IslandMap map  = new IslandMap(boundary);
+		IslandMap map = new IslandMap(boundary);
 		map.setup(qes);
 		return map;
 	}

@@ -12,7 +12,6 @@ import com.vividsolutions.jts.geom.Polygon;
 
 public class AWTGeomUtils {
 
-	
 	public static List<Point2D.Double> Path2DToPoint2DList(final Path2D.Double path) {
 		List<Point2D.Double> toReturn = new ArrayList<>();
 		PathIterator origPathIterator = path.getPathIterator(null);
@@ -26,7 +25,7 @@ public class AWTGeomUtils {
 		}
 		return toReturn;
 	}
-	
+
 	public static Path2D.Double polygonToPath2D(Polygon polygon) {
 		Path2D.Double path = new Path2D.Double();
 		LinearRing ring = (LinearRing) polygon.getExteriorRing();
